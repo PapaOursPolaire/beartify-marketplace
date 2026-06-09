@@ -1,0 +1,13 @@
+{
+  "id":          "int-video-wallpaper",
+  "name":        "Vidéo Wallpaper",
+  "author":      "PapaOurs",
+  "version":     "0.9.0",
+  "description": "Définissez une vidéo (MP4/WebM) comme arrière-plan animé de Beartify. Opacité, flou, vitesse et mode de remplissage configurables. Compatible Tauri et navigateur.",
+  "tags":        ["fond", "vidéo", "visuel"],
+  "featured":    true,
+  "entry":       "main.js",
+  "preview":     "preview.png",
+  "accentColor": "#fb923c",
+  "files":       ["main.js", "preview.png", "config.json"]
+}
