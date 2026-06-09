@@ -1,0 +1,13 @@
+{
+  "id":          "theme-currents",
+  "name":        "Currents",
+  "author":      "PapaOurs",
+  "version":     "1.0.0",
+  "description": "Inspiré de l'album Currents de Tame Impala. Une bille psychédélique descend en boucle infinie dans l'arrière-plan. Palette pastel, typographie douce, vibrations cosmiques.",
+  "tags":        ["psychédélique", "animé", "pastel"],
+  "featured":    true,
+  "entry":       "main.js",
+  "preview":     "preview.png",
+  "accentColor": "#a78bfa",
+  "files":       ["main.js", "preview.png", "config.json"]
+}
