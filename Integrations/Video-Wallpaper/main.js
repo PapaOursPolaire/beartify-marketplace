@@ -304,6 +304,17 @@
     version: '0.9.0',
 
     async activate() {
+      // Un thème Marketplace actif peut poser son propre fond/overlay et
+      // entrer en conflit visuel avec la vidéo. On reproduit ici la même
+      // règle d'exclusivité que celle du sélecteur de thème natif :
+      // activer ce fond désactive le thème en cours (silencieusement).
+      if (window.BeartifyMarketplace?.deactivateType) {
+        try {
+          const activeThemes = window.BeartifyMarketplace.getActiveByType?.('theme') || [];
+          if (activeThemes.length) await window.BeartifyMarketplace.deactivateType('theme');
+        } catch (e) { console.warn('[VideoWallpaper] Désactivation du thème en cours a échoué :', e); }
+      }
+
       _injectStyles();
       _mountBtn();
       if (cfg('src')) {
