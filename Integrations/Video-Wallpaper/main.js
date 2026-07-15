@@ -37,33 +37,64 @@
   async function _resolveSource(src) {
     if (!src) return null;
 
-    // URL déjà absolue ou relative web → utiliser directement
-    if (src.startsWith('http') || src.startsWith('blob:') || src.startsWith('/') || src.startsWith('./')) {
+    // URL web ou blob déjà utilisable telle quelle
+    if (src.startsWith('http') || src.startsWith('blob:')) {
+      return src;
+    }
+    // En navigateur (pas Tauri), un chemin "/…" ou "./…" est déjà une URL
+    // relative au site, utilisable telle quelle.
+    if (!window._IS_TAURI && (src.startsWith('/') || src.startsWith('./'))) {
       return src;
     }
 
-    // Tauri → lecture binaire
-    if (window._IS_TAURI && window.__TAURI__?.core?.invoke) {
+    if (window._IS_TAURI && window.__TAURI__?.core) {
+      const core = window.__TAURI__.core;
+
+      // "file:///C:/…" (ex: collé depuis l'explorateur Windows, ou une
+      // barre d'adresse) → on retombe sur un vrai chemin OS.
+      let fsPath = src;
+      if (fsPath.startsWith('file://')) {
+        fsPath = decodeURIComponent(fsPath.replace(/^file:\/\/\/?/, ''));
+      }
+
+      const isAbsolute = /^[a-zA-Z]:[\\/]/.test(fsPath)   // C:\... ou C:/...
+        || fsPath.startsWith('/')                          // /home/user/...
+        || fsPath.startsWith('\\\\');                       // \\serveur\partage
+
+      if (isAbsolute) {
+        // Chemin hors du dossier de l'extension : on NE charge PAS le
+        // fichier en mémoire (un read_file + Blob sur une vidéo de
+        // plusieurs centaines de Mo sature l'IPC et la RAM). On sert le
+        // fichier directement via le protocole asset:// de Tauri, qui
+        // stream depuis le disque.
+        if (core.convertFileSrc) return core.convertFileSrc(fsPath);
+        throw new Error(
+          "Impossible d'accéder à ce fichier : convertFileSrc indisponible. " +
+          "Vérifie que app.security.assetProtocol.enable est activé dans tauri.conf.json, " +
+          "avec un scope couvrant ce dossier."
+        );
+      }
+
+      // Chemin relatif → fichier stocké à côté de l'extension elle-même
+      // (AppLocalData, baseDir 4 — cohérent avec le reste de marketplace.js,
+      // contrairement à l'ancien baseDir:3 utilisé ici par erreur).
       try {
-        const bytes = await window.__TAURI__.core.invoke('plugin:fs|read_file', {
-          path:    src,
-          options: { baseDir: 3 }, // BaseDir.Resource
+        const bytes = await core.invoke('plugin:fs|read_file', {
+          path: fsPath,
+          options: { baseDir: 4 },
         });
-        const ext  = src.split('.').pop().toLowerCase();
+        const ext  = fsPath.split('.').pop().toLowerCase();
         const mime = { mp4: 'video/mp4', webm: 'video/webm', ogv: 'video/ogg', ogg: 'video/ogg', mov: 'video/mp4' }[ext] || 'video/mp4';
         const blob = new Blob([new Uint8Array(bytes)], { type: mime });
         _currentBlobUrl = URL.createObjectURL(blob);
         return _currentBlobUrl;
       } catch (e) {
-        // Fallback : convertFileSrc si disponible (Tauri V1 compat)
-        if (window.__TAURI__?.core?.convertFileSrc) {
-          return window.__TAURI__.core.convertFileSrc(src);
-        }
-        throw new Error(`Impossible de lire la vidéo "${src}" : ${e.message}`);
+        throw new Error(`Impossible de lire la vidéo "${fsPath}" : ${e.message}`);
       }
     }
 
-    // Chemin relatif en navigateur → préfixer /
+    // Navigateur (pas de Tauri) : seule une URL web fonctionne, un chemin
+    // local ne peut pas être lu pour des raisons de sécurité du navigateur.
     return '/' + src;
   }
 
