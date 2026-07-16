@@ -37,6 +37,13 @@
   async function _resolveSource(src) {
     if (!src) return null;
 
+    // Windows "Copier en tant que chemin d'accès" entoure le chemin de
+    // guillemets littéraux (ex: "C:\...\video.mp4") — on les retire avant
+    // tout traitement, sinon le test de chemin absolu échoue silencieusement
+    // et le fichier part (à tort) dans la branche "chemin relatif".
+    src = src.trim().replace(/^["']|["']$/g, '');
+    if (!src) return null;
+
     // URL web ou blob déjà utilisable telle quelle
     if (src.startsWith('http') || src.startsWith('blob:')) {
       return src;
@@ -89,7 +96,7 @@
         _currentBlobUrl = URL.createObjectURL(blob);
         return _currentBlobUrl;
       } catch (e) {
-        throw new Error(`Impossible de lire la vidéo "${fsPath}" : ${e.message}`);
+        throw new Error(`Impossible de lire la vidéo "${fsPath}" : ${e?.message ?? e}`);
       }
     }
 
@@ -109,8 +116,8 @@
     try {
       resolvedSrc = await _resolveSource(src);
     } catch (e) {
-      console.error('[VideoWallpaper]', e.message);
-      _toast('Vidéo introuvable : ' + e.message, 'error');
+      console.error('[VideoWallpaper]', e?.message ?? e);
+      _toast('Vidéo introuvable : ' + (e?.message ?? e), 'error');
       return;
     }
 
