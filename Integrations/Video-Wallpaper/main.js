@@ -121,16 +121,23 @@
     v.playsInline = true;
     v.disablePictureInPicture = true;
     v.playbackRate = Math.max(0.1, parseFloat(cfg('speed')) || 1);
-    v.style.cssText = _videoCSS();
 
     // Ajouter la source APRÈS avoir défini muted
     // (certains navigateurs bloquent autoplay si src est défini avant muted)
     v.src = resolvedSrc;
 
-    // Insérer derrière l'UI mais devant #spicyGlobalBg si présent
-    const anchor = document.getElementById('spicyGlobalBg');
-    if (anchor) anchor.after(v);
-    else        document.body.prepend(v);
+    // #mainContent a un fond opaque ET position:relative : un enfant en
+    // position:fixed/z-index:-1 posé sur <body> se fait toujours peindre
+    // DERRIÈRE ce fond (un élément positionné, même en z-index:auto, se
+    // peint après les enfants en z-index négatif de son propre contexte
+    // — l'ordre DOM n'y change rien). On insère donc la vidéo comme tout
+    // premier enfant de #mainContent lui-même, en position:absolute
+    // calée sur son position:relative, avec un z-index positif bas :
+    // elle se peint alors juste après le fond de #mainContent, mais
+    // avant tous les panneaux/cartes qui le suivent dans le DOM.
+    const host = document.getElementById('mainContent');
+    v.style.cssText = _videoCSS(!!host);
+    (host || document.body).prepend(v);
 
     // Charger puis jouer
     v.load();
@@ -151,20 +158,21 @@
     if (_currentBlobUrl) { URL.revokeObjectURL(_currentBlobUrl); _currentBlobUrl = null; }
   }
 
-  function _videoCSS() {
+  function _videoCSS(insideMainContent = !!document.getElementById('mainContent')) {
     return [
-      'position:fixed', 'top:0', 'left:0', 'width:100%', 'height:100%',
+      insideMainContent ? 'position:absolute' : 'position:fixed',
+      'top:0', 'left:0', 'width:100%', 'height:100%',
       `object-fit:${cfg('fit')}`,
       `opacity:${cfg('opacity')}`,
       `filter:blur(${cfg('blur')}px)`,
-      'z-index:-1',
+      insideMainContent ? 'z-index:0' : 'z-index:-1',
       'pointer-events:none',
     ].join(';');
   }
 
   function _applyVideoCSS() {
     const el = document.getElementById(VIDEO_ID);
-    if (el) el.style.cssText = _videoCSS();
+    if (el) el.style.cssText = _videoCSS(el.parentElement?.id === 'mainContent');
   }
 
   // ── Panneau de configuration ───────────────────────────────────
