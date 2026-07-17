@@ -133,16 +133,20 @@
     // (certains navigateurs bloquent autoplay si src est défini avant muted)
     v.src = resolvedSrc;
 
-    // #mainContent a un fond opaque ET position:relative : un enfant en
-    // position:fixed/z-index:-1 posé sur <body> se fait toujours peindre
-    // DERRIÈRE ce fond (un élément positionné, même en z-index:auto, se
-    // peint après les enfants en z-index négatif de son propre contexte
-    // — l'ordre DOM n'y change rien). On insère donc la vidéo comme tout
-    // premier enfant de #mainContent lui-même, en position:absolute
-    // calée sur son position:relative, avec un z-index positif bas :
-    // elle se peint alors juste après le fond de #mainContent, mais
-    // avant tous les panneaux/cartes qui le suivent dans le DOM.
-    const host = document.getElementById('mainContent');
+    // Un enfant en position:fixed/z-index:-1 posé sur <body> se fait
+    // toujours peindre DERRIÈRE tout élément positionné rencontré en
+    // chemin (même en z-index:auto) — l'ordre DOM n'y change rien.
+    // #app-body enveloppe la sidebar, le lecteur ET #mainContent — c'est le
+    // seul parent commun aux trois. Son fond est transparent, mais il n'a
+    // pas de position définie (static) : on lui donne position:relative
+    // (sans effet visuel, son fond restant transparent) pour qu'il serve de
+    // repère à notre vidéo en position:absolute avec un z-index positif bas :
+    // elle se peint alors juste après le fond d'#app-body, mais avant tous
+    // les panneaux (sidebar, lecteur, mainContent) qui le suivent dans le DOM.
+    const host = document.getElementById('app-body') || document.getElementById('mainContent');
+    if (host && getComputedStyle(host).position === 'static') {
+      host.style.position = 'relative';
+    }
     v.style.cssText = _videoCSS(!!host);
     (host || document.body).prepend(v);
 
@@ -165,21 +169,21 @@
     if (_currentBlobUrl) { URL.revokeObjectURL(_currentBlobUrl); _currentBlobUrl = null; }
   }
 
-  function _videoCSS(insideMainContent = !!document.getElementById('mainContent')) {
+  function _videoCSS(insideHostContainer = !!(document.getElementById('app-body') || document.getElementById('mainContent'))) {
     return [
-      insideMainContent ? 'position:absolute' : 'position:fixed',
+      insideHostContainer ? 'position:absolute' : 'position:fixed',
       'top:0', 'left:0', 'width:100%', 'height:100%',
       `object-fit:${cfg('fit')}`,
       `opacity:${cfg('opacity')}`,
       `filter:blur(${cfg('blur')}px)`,
-      insideMainContent ? 'z-index:0' : 'z-index:-1',
+      insideHostContainer ? 'z-index:0' : 'z-index:-1',
       'pointer-events:none',
     ].join(';');
   }
 
   function _applyVideoCSS() {
     const el = document.getElementById(VIDEO_ID);
-    if (el) el.style.cssText = _videoCSS(el.parentElement?.id === 'mainContent');
+    if (el) el.style.cssText = _videoCSS(el.parentElement?.id === 'app-body' || el.parentElement?.id === 'mainContent');
   }
 
   // ── Panneau de configuration ───────────────────────────────────
@@ -274,45 +278,17 @@
     });
   }
 
-  // ── Bouton flottant ────────────────────────────────────────────
-  function _mountBtn() {
-    if (document.getElementById(BTN_ID)) return;
-    const btn = document.createElement('button');
-    btn.id = BTN_ID;
-    btn.title = 'Configurer la vidéo de fond';
-    btn.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><rect x="2" y="5" width="20" height="14" rx="2"/><polygon points="10 9 15 12 10 15" fill="currentColor" stroke="none" opacity=".8"/></svg> Vidéo wallpaper`;
-    btn.addEventListener('click', _openOverlay);
-    document.body.appendChild(btn);
-  }
+  // Le bouton flottant a été retiré : la configuration se fait maintenant
+  // depuis la page de détails de l'extension dans le Marketplace (bouton
+  // "Configurer"), qui appelle directement window.BeartifyExtensions[ID]
+  // .configure() — inutile d'injecter quoi que ce soit dans l'UI globale.
 
-  function _unmountBtn() { document.getElementById(BTN_ID)?.remove(); }
-
-  // ── Styles du bouton ───────────────────────────────────────────
+  // ── Styles (réservés au futur, aucun bouton flottant à styliser) ─
   function _injectStyles() {
     if (document.getElementById(STYLE_ID)) return;
     const el = document.createElement('style');
     el.id = STYLE_ID;
-    el.textContent = `
-#${BTN_ID} {
-  position: fixed;
-  bottom: calc(var(--player-h, 90px) + 16px);
-  left: calc(var(--sidebar-w, 64px) + 16px);
-  z-index: 200;
-  display: inline-flex; align-items: center; gap: 6px;
-  padding: 7px 14px; border-radius: 500px;
-  border: 1px solid rgba(251,146,60,0.35);
-  background: rgba(251,146,60,0.08);
-  color: rgba(251,146,60,0.9);
-  font-size: 0.78rem; font-weight: 500; font-family: inherit;
-  cursor: pointer;
-  transition: background .12s, border-color .12s, color .12s;
-}
-#${BTN_ID}:hover {
-  background: rgba(251,146,60,0.18);
-  border-color: rgba(251,146,60,0.6);
-  color: #fb923c;
-}
-    `;
+    el.textContent = '';
     document.head.appendChild(el);
   }
 
@@ -362,7 +338,6 @@
       }
 
       _injectStyles();
-      _mountBtn();
       if (cfg('src')) {
         await _mountVideo();
       } else {
@@ -375,7 +350,6 @@
 
     deactivate() {
       _unmountVideo();
-      _unmountBtn();
       _removeStyles();
       document.getElementById(OVERLAY_ID)?.remove();
       delete window._vwConfigure;
