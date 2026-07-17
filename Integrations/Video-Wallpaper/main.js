@@ -133,22 +133,17 @@
     // (certains navigateurs bloquent autoplay si src est défini avant muted)
     v.src = resolvedSrc;
 
-    // Un enfant en position:fixed/z-index:-1 posé sur <body> se fait
-    // toujours peindre DERRIÈRE tout élément positionné rencontré en
-    // chemin (même en z-index:auto) — l'ordre DOM n'y change rien.
-    // #app-body enveloppe la sidebar, le lecteur ET #mainContent — c'est le
-    // seul parent commun aux trois. Son fond est transparent, mais il n'a
-    // pas de position définie (static) : on lui donne position:relative
-    // (sans effet visuel, son fond restant transparent) pour qu'il serve de
-    // repère à notre vidéo en position:absolute avec un z-index positif bas :
-    // elle se peint alors juste après le fond d'#app-body, mais avant tous
-    // les panneaux (sidebar, lecteur, mainContent) qui le suivent dans le DOM.
-    const host = document.getElementById('app-body') || document.getElementById('mainContent');
-    if (host && getComputedStyle(host).position === 'static') {
-      host.style.position = 'relative';
-    }
-    v.style.cssText = _videoCSS(!!host);
-    (host || document.body).prepend(v);
+    // #spicyGlobalBg (le système de thème natif) est un enfant direct de
+    // <body> en position:fixed/z-index:-1, et il s'affiche correctement
+    // partout SAUF dans #mainContent — car c'est le seul conteneur avec un
+    // fond opaque ET position:relative (un élément positionné, même en
+    // z-index:auto, se peint après les enfants en z-index négatif de son
+    // propre contexte). Un thème CSS du Marketplace doit donc forcément
+    // neutraliser ce fond quelque part pour fonctionner ; on fait pareil,
+    // au lieu de multiplier les conteneurs hôtes.
+    _injectMainContentOverride();
+    v.style.cssText = _videoCSS();
+    document.body.prepend(v);
 
     // Charger puis jouer
     v.load();
@@ -167,23 +162,53 @@
     const el = document.getElementById(VIDEO_ID);
     if (el) { el.pause(); el.removeAttribute('src'); el.load(); el.remove(); }
     if (_currentBlobUrl) { URL.revokeObjectURL(_currentBlobUrl); _currentBlobUrl = null; }
+    _removeMainContentOverride();
   }
 
-  function _videoCSS(insideHostContainer = !!(document.getElementById('app-body') || document.getElementById('mainContent'))) {
+  const MAINCONTENT_OVERRIDE_ID = 'ext-vw-maincontent-override';
+  function _injectMainContentOverride() {
+    if (document.getElementById(MAINCONTENT_OVERRIDE_ID)) return;
+    const el = document.createElement('style');
+    el.id = MAINCONTENT_OVERRIDE_ID;
+    // style.css force ces 6 conteneurs en background:#000000 !important
+    // (règle "body:not(.theme-clair):not(.theme-starry) .xxx") : on
+    // reproduit EXACTEMENT le même sélecteur pour égaler sa spécificité
+    // (une classe seule ne suffirait pas à battre ce sélecteur composé),
+    // et on compte sur l'ordre d'injection (notre <style> arrive après
+    // style.css dans le <head>) pour gagner le cascade à spécificité égale.
+    // #mainContent et #lyricsPanel gardent en plus leurs sélecteurs par id
+    // au cas où une autre règle les cible spécifiquement ailleurs.
+    el.textContent = `
+      body:not(.theme-clair):not(.theme-starry) .top-bar,
+      body:not(.theme-clair):not(.theme-starry) .sidebar,
+      body:not(.theme-clair):not(.theme-starry) .main-content,
+      body:not(.theme-clair):not(.theme-starry) .lyrics-panel,
+      body:not(.theme-clair):not(.theme-starry) .right-panel,
+      body:not(.theme-clair):not(.theme-starry) .player-bar,
+      #mainContent, #lyricsPanel {
+        background: transparent !important;
+      }
+    `;
+    document.head.appendChild(el);
+  }
+  function _removeMainContentOverride() {
+    document.getElementById(MAINCONTENT_OVERRIDE_ID)?.remove();
+  }
+
+  function _videoCSS() {
     return [
-      insideHostContainer ? 'position:absolute' : 'position:fixed',
-      'top:0', 'left:0', 'width:100%', 'height:100%',
+      'position:fixed', 'top:0', 'left:0', 'width:100%', 'height:100%',
       `object-fit:${cfg('fit')}`,
       `opacity:${cfg('opacity')}`,
       `filter:blur(${cfg('blur')}px)`,
-      insideHostContainer ? 'z-index:0' : 'z-index:-1',
+      'z-index:-1',
       'pointer-events:none',
     ].join(';');
   }
 
   function _applyVideoCSS() {
     const el = document.getElementById(VIDEO_ID);
-    if (el) el.style.cssText = _videoCSS(el.parentElement?.id === 'app-body' || el.parentElement?.id === 'mainContent');
+    if (el) el.style.cssText = _videoCSS();
   }
 
   // ── Panneau de configuration ───────────────────────────────────
@@ -326,6 +351,17 @@
     version: '0.9.0',
 
     async activate() {
+      // Cette extension nécessite un accès disque local (fichier vidéo sur
+      // le poste de l'utilisateur) : elle ne peut fonctionner que dans
+      // l'app Tauri. Sur le site web, on refuse silencieusement plutôt que
+      // de retomber sur l'ouverture du panneau de config à chaque activate()
+      // (source jamais trouvée puisque localStorage n'est pas partagé entre
+      // le site et l'app).
+      if (!window._IS_TAURI) {
+        console.warn('[VideoWallpaper] Extension Tauri uniquement — ignorée sur le site web.');
+        return;
+      }
+
       // Un thème Marketplace actif peut poser son propre fond/overlay et
       // entrer en conflit visuel avec la vidéo. On reproduit ici la même
       // règle d'exclusivité que celle du sélecteur de thème natif :
