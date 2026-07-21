@@ -1,0 +1,72 @@
+/* ══════════════════════════════════════════════════════════════════
+   Beartify — Extension "Sabres Laser — Barre de progression"
+   main.css
+
+   Toutes les règles sont scopées à #progressContainer via l'attribut
+   [data-lightsaber] injecté par main.js, pour ne jamais impacter le
+   reste de l'UI ni les autres extensions/thèmes actifs.
+   ══════════════════════════════════════════════════════════════════ */
+
+/* ── Couleurs par sabre ──────────────────────────────────────────── */
+#progressContainer[data-lightsaber="ahsoka"] { --lgs-color: #7CFC00; --lgs-color-2: #FFD84D; --lgs-glow: rgba(124,252,0,.55); }
+#progressContainer[data-lightsaber="anakin"] { --lgs-color: #3FA9F5; --lgs-color-2: #3FA9F5; --lgs-glow: rgba(63,169,245,.55); }
+#progressContainer[data-lightsaber="leia"]   { --lgs-color: #FF6FAE; --lgs-color-2: #FF6FAE; --lgs-glow: rgba(255,111,174,.55); }
+#progressContainer[data-lightsaber="luke"]   { --lgs-color: #2ECC71; --lgs-color-2: #2ECC71; --lgs-glow: rgba(46,204,113,.55); }
+#progressContainer[data-lightsaber="mace"]   { --lgs-color: #B967FF; --lgs-color-2: #B967FF; --lgs-glow: rgba(185,103,255,.55); }
+#progressContainer[data-lightsaber="rey"]    { --lgs-color: #FFD23F; --lgs-color-2: #FFD23F; --lgs-glow: rgba(255,210,63,.55); }
+#progressContainer[data-lightsaber="vader"]  { --lgs-color: #FF3B30; --lgs-color-2: #FF3B30; --lgs-glow: rgba(255,59,48,.6); }
+
+/* ── Conteneur : laisse la place au sabre en début de barre ───────── */
+#progressContainer.lgs-active {
+  position: relative;
+  margin-left: 26px; /* place pour la garde/manche visible hors de la piste */
+  overflow: visible;
+}
+
+/* ── Icône du sabre, positionnée au tout début de la barre ────────── */
+.lgs-hilt {
+  position: absolute;
+  left: -22px;
+  top: 50%;
+  width: 20px;
+  height: 20px;
+  transform: translateY(-50%);
+  transform-origin: center;
+  cursor: pointer;
+  user-select: none;
+  -webkit-user-drag: none;
+  filter: drop-shadow(0 0 4px var(--lgs-glow, rgba(255,255,255,.4)));
+  transition: filter .2s ease, transform .15s ease;
+  z-index: 5;
+}
+.lgs-hilt:hover  { filter: drop-shadow(0 0 8px var(--lgs-glow, rgba(255,255,255,.6))); }
+.lgs-hilt:active { transform: translateY(-50%) scale(.9); }
+
+/* ── Remplissage de la barre = lame du sabre ───────────────────────── */
+#progressContainer.lgs-active #progressFill {
+  background: linear-gradient(90deg, var(--lgs-color) 0%, var(--lgs-color-2) 100%) !important;
+  box-shadow:
+    0 0 6px 1px var(--lgs-glow),
+    0 0 14px 2px var(--lgs-glow);
+  position: relative;
+}
+
+/* Léger "coeur" blanc au centre de la lame, comme un vrai sabre laser */
+#progressContainer.lgs-active #progressFill::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  height: 30%;
+  top: 35%;
+  background: rgba(255,255,255,.55);
+  border-radius: 2px;
+  pointer-events: none;
+}
+
+/* ── Thumb assorti au sabre actif ──────────────────────────────────── */
+#progressContainer.lgs-active #progressThumb {
+  background: #fff !important;
+  box-shadow: 0 0 0 3px var(--lgs-color), 0 0 10px 3px var(--lgs-glow);
+}
+
+/* ── Petit tooltip natif via title, rien de plus à faire ──────────── */
