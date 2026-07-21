@@ -1,0 +1,25 @@
+{
+  "id": "lightsaber-progress",
+  "name": "Sabres Laser — Barre de progression",
+  "author": "PapaOurs",
+  "version": "1.0.0",
+  "description": "Personnalise la barre de progression avec un sabre laser Star Wars (Ahsoka, Anakin, Leïa, Luke, Mace Windu, Rey, Vador) au choix, couleur assortie incluse.",
+  "type": "extension",
+  "tags": ["star-wars", "progress-bar", "cosmétique", "ui"],
+  "featured": false,
+  "entry": "main.js",
+  "preview": "preview.png",
+  "files": [
+    "main.js",
+    "main.css",
+    "preview.png",
+    "sw_saber_ahsoka.png",
+    "sw_saber_anakin.png",
+    "sw_saber_leia.png",
+    "sw_saber_luke.png",
+    "sw_saber_mace.png",
+    "sw_saber_rey.png",
+    "sw_saber_vader.png"
+  ],
+  "accentColor": "#3fa9f5"
+}
