@@ -15,7 +15,7 @@ SABRES DISPONIBLES ET COULEURS
   Leïa Organa       →  Rose
   Luke Skywalker    →  Vert
   Mace Windu        →  Mauve
-  Rey               →  Jaune
+  Rey Skywalker     →  Jaune
   Dark Vador        →  Rouge
 
 UTILISATION
