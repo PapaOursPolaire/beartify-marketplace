@@ -8,7 +8,7 @@
    ══════════════════════════════════════════════════════════════════ */
 
 /* ── Couleurs par sabre ──────────────────────────────────────────── */
-#progressContainer[data-lightsaber="ahsoka"] { --lgs-color: #7CFC00; --lgs-color-2: #FFD84D; --lgs-glow: rgba(124,252,0,.55); }
+#progressContainer[data-lightsaber="ahsoka"] { --lgs-color: #F4FEFF; --lgs-color-2: #DFF9FF; --lgs-glow: rgba(244,254,255,.75); }
 #progressContainer[data-lightsaber="anakin"] { --lgs-color: #3FA9F5; --lgs-color-2: #3FA9F5; --lgs-glow: rgba(63,169,245,.55); }
 #progressContainer[data-lightsaber="leia"]   { --lgs-color: #FF6FAE; --lgs-color-2: #FF6FAE; --lgs-glow: rgba(255,111,174,.55); }
 #progressContainer[data-lightsaber="luke"]   { --lgs-color: #2ECC71; --lgs-color-2: #2ECC71; --lgs-glow: rgba(46,204,113,.55); }
