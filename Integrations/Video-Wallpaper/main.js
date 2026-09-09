@@ -373,6 +373,26 @@
         } catch (e) { console.warn('[VideoWallpaper] Désactivation du thème en cours a échoué :', e); }
       }
 
+      // Les thèmes NATIFS "Blanc" (theme-clair) et "Starry Night"
+      // (theme-starry) ne passent pas par le Marketplace : ils sont posés
+      // par applySettings() (settings.js) sous forme de classes sur <body>,
+      // avec leurs propres règles CSS de fond (souvent opaques). Le
+      // deactivateType('theme') ci-dessus ne les voit donc pas du tout, et
+      // ils restent actifs en même temps que la vidéo → conflit visuel.
+      // On applique ici la même règle d'exclusivité, côté natif : si l'un
+      // de ces deux thèmes est actif, on bascule sur "Sombre" (amoled, fond
+      // 100% transparent-compatible) et on mémorise le thème d'origine pour
+      // le restaurer à la désactivation de l'extension.
+      if (typeof window.getSetting === 'function' && typeof window.setSetting === 'function') {
+        try {
+          const nativeTheme = window.getSetting('theme');
+          if (nativeTheme === 'clair' || nativeTheme === 'starry') {
+            setCfg('_prevNativeTheme', nativeTheme);
+            window.setSetting('theme', 'amoled');
+          }
+        } catch (e) { console.warn('[VideoWallpaper] Désactivation du thème natif a échoué :', e); }
+      }
+
       _injectStyles();
       if (cfg('src')) {
         await _mountVideo();
@@ -389,6 +409,15 @@
       _removeStyles();
       document.getElementById(OVERLAY_ID)?.remove();
       delete window._vwConfigure;
+
+      // Restaurer le thème natif (Blanc / Starry Night) qui avait été
+      // écarté à l'activation, si applicable.
+      const prevTheme = cfg('_prevNativeTheme');
+      if (prevTheme && typeof window.setSetting === 'function') {
+        window.setSetting('theme', prevTheme);
+      }
+      localStorage.removeItem('beartify_vw__prevNativeTheme');
+
       console.info('[VideoWallpaper] Désactivé.');
     },
 
