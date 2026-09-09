@@ -383,12 +383,12 @@
       // de ces deux thèmes est actif, on bascule sur "Sombre" (amoled, fond
       // 100% transparent-compatible) et on mémorise le thème d'origine pour
       // le restaurer à la désactivation de l'extension.
-      if (typeof window.getSetting === 'function' && typeof window.setSetting === 'function') {
+      if (typeof window.getSetting === 'function' && typeof window._setSetting === 'function') {
         try {
           const nativeTheme = window.getSetting('theme');
           if (nativeTheme === 'clair' || nativeTheme === 'starry') {
             setCfg('_prevNativeTheme', nativeTheme);
-            window.setSetting('theme', 'amoled');
+            window._setSetting('theme', 'amoled');
           }
         } catch (e) { console.warn('[VideoWallpaper] Désactivation du thème natif a échoué :', e); }
       }
@@ -413,8 +413,8 @@
       // Restaurer le thème natif (Blanc / Starry Night) qui avait été
       // écarté à l'activation, si applicable.
       const prevTheme = cfg('_prevNativeTheme');
-      if (prevTheme && typeof window.setSetting === 'function') {
-        window.setSetting('theme', prevTheme);
+      if (prevTheme && typeof window._setSetting === 'function') {
+        window._setSetting('theme', prevTheme);
       }
       localStorage.removeItem('beartify_vw__prevNativeTheme');
 
